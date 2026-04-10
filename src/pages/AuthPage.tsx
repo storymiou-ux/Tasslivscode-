@@ -83,8 +83,6 @@ const AuthPage = () => {
     }
   }, [confirmed]);
 
-  const [emailError, setEmailError] = useState<string | null>(null);
-
   // Validation d'email en temps réel
   const handleEmailChange = (email: string) => {
     handleInputChange('email', email);
