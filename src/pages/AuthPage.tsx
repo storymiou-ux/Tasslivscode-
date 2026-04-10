@@ -27,6 +27,43 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Fonction de validation d'email robuste
+  const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+    if (!email) {
+      return { isValid: false, error: 'L\'email est requis' };
+    }
+
+    // Regex pour validation d'email stricte
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+    if (!emailRegex.test(email)) {
+      return { isValid: false, error: 'Format d\'email invalide' };
+    }
+
+    // Vérifications supplémentaires
+    const [localPart, domain] = email.split('@');
+
+    if (localPart.length > 64) {
+      return { isValid: false, error: 'La partie locale de l\'email est trop longue' };
+    }
+
+    if (domain.length > 253) {
+      return { isValid: false, error: 'Le domaine de l\'email est trop long' };
+    }
+
+    // Vérifier les points consécutifs
+    if (localPart.includes('..') || domain.includes('..')) {
+      return { isValid: false, error: 'L\'email ne peut pas contenir des points consécutifs' };
+    }
+
+    // Vérifier que le domaine a au moins un point
+    if (!domain.includes('.')) {
+      return { isValid: false, error: 'Le domaine doit contenir au moins un point' };
+    }
+
+    return { isValid: true };
+  };
+
   useEffect(() => {
     if (mode === 'login') {
       setIsLogin(true);
@@ -43,16 +80,19 @@ const AuthPage = () => {
     }
   }, [confirmed]);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '+221',
-    password: '',
-    confirmPassword: '',
-    businessName: '',
-    businessType: '',
-    agreeToTerms: false
-  });
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Validation d'email en temps réel
+  const handleEmailChange = (email: string) => {
+    handleInputChange('email', email);
+
+    if (email && email.length > 0) {
+      const validation = validateEmail(email);
+      setEmailError(validation.isValid ? null : validation.error || null);
+    } else {
+      setEmailError(null);
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,6 +105,14 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
+      // Validation d'email
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        setError(emailValidation.error);
+        setLoading(false);
+        return;
+      }
+
       if (isLogin) {
         const result = await signIn({
           email: formData.email,
@@ -222,11 +270,25 @@ const AuthPage = () => {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all"
-                placeholder=""
+                onChange={(e) => handleEmailChange(e.target.value)}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all ${
+                  emailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-200'
+                }`}
+                placeholder="votre.email@example.com"
                 required
               />
+              {emailError && (
+                <p className="text-xs text-red-600 mt-1 flex items-center">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  {emailError}
+                </p>
+              )}
+              {!emailError && formData.email && (
+                <p className="text-xs text-green-600 mt-1 flex items-center">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Email valide
+                </p>
+              )}
             </div>
 
             <div>
