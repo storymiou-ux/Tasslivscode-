@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Support pour les deux formats de variables (avec et sans préfixe VITE_)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
 
 // Log pour debug en développement
 if (import.meta.env.DEV) {
   console.log('Supabase URL:', supabaseUrl);
   console.log('Supabase Key exists:', !!supabaseAnonKey);
+  console.log('Environment Mode:', import.meta.env.MODE);
 }
 
 if (!supabaseUrl || !supabaseAnonKey) {

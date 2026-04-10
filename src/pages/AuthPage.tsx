@@ -40,16 +40,20 @@ const AuthPage = () => {
 
   // Debug: Log environment variables in development and production
   useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
     console.log('Environment Variables Debug:');
-    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'EXISTS' : 'MISSING');
+    console.log('SUPABASE_URL:', url);
+    console.log('SUPABASE_ANON_KEY:', key ? 'EXISTS' : 'MISSING');
     console.log('MODE:', import.meta.env.MODE);
   }, []);
 
-  // Vérifier si Supabase est configuré
-  const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL &&
-                               import.meta.env.VITE_SUPABASE_ANON_KEY &&
-                               import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
+  // Vérifier si Supabase est configuré (support avec et sans préfixe VITE_)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+  const isSupabaseConfigured = supabaseUrl && 
+                               supabaseKey && 
+                               supabaseUrl !== 'https://placeholder.supabase.co';
   const validateEmail = (email: string): { isValid: boolean; error?: string } => {
     if (!email) {
       return { isValid: false, error: 'L\'email est requis' };
