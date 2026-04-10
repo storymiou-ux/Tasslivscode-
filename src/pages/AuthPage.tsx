@@ -166,10 +166,12 @@ const AuthPage = () => {
       }
 
       if (isLogin) {
+        console.log('Attempting login with email:', formData.email);
         const result = await signIn({
           email: formData.email,
           password: formData.password,
         });
+        console.log('Login result:', result);
 
         if (result.user && !result.user.email_confirmed_at) {
           setError('Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.');
@@ -177,8 +179,13 @@ const AuthPage = () => {
           return;
         }
 
+        console.log('Login successful, redirecting to dashboard');
         setSuccess('Connexion réussie !');
-        setTimeout(() => navigate('/dashboard'), 1000);
+        setLoading(false);
+        setTimeout(() => {
+          console.log('Navigating to /dashboard');
+          navigate('/dashboard');
+        }, 500);
       } else {
         if (formData.password !== formData.confirmPassword) {
           setError('Les mots de passe ne correspondent pas');
@@ -217,10 +224,14 @@ const AuthPage = () => {
         }
 
         setSuccess('Compte créé avec succès ! Redirection...');
-        setTimeout(() => navigate('/dashboard'), 1500);
+        setLoading(false);
+        setTimeout(() => {
+          console.log('Navigating to /dashboard');
+          navigate('/dashboard');
+        }, 500);
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error('Auth error (full):', err, 'Message:', err?.message, 'Code:', err?.code);
       if (err.message?.includes('Invalid login credentials')) {
         setError('Email ou mot de passe incorrect');
       } else if (err.message?.includes('User already registered')) {

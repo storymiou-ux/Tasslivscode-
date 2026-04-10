@@ -1,9 +1,10 @@
-import { supabase } from './supabase';
+import { supabase, getSupabaseConfig } from './supabase';
 
 // Check if we're in development mode with placeholder values
-const isDevelopmentMode = import.meta.env.VITE_SUPABASE_URL?.includes('placeholder') ||
-                         !import.meta.env.VITE_SUPABASE_URL ||
-                         import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co';
+function isDevelopmentMode() {
+  const config = getSupabaseConfig();
+  return !config.isConfigured;
+}
 
 export interface SignUpData {
   email: string;
@@ -19,7 +20,7 @@ export interface SignInData {
 }
 
 export const signUp = async (data: SignUpData) => {
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode()) {
     // Simulate successful signup in development mode
     console.log('Development mode: Simulating signup for', data.email);
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
@@ -91,7 +92,7 @@ export const signUp = async (data: SignUpData) => {
 };
 
 export const signIn = async (data: SignInData) => {
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode()) {
     // Simulate successful signin in development mode
     console.log('Development mode: Simulating signin for', data.email);
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
@@ -141,7 +142,7 @@ export const signIn = async (data: SignInData) => {
 };
 
 export const signOut = async () => {
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode()) {
     console.log('Development mode: Simulating signout');
     localStorage.removeItem('dev-auth-user');
     return;
@@ -155,7 +156,7 @@ export const signOut = async () => {
 };
 
 export const getCurrentUser = async () => {
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode()) {
     const storedUser = localStorage.getItem('dev-auth-user');
     return storedUser ? JSON.parse(storedUser) : null;
   }
@@ -170,7 +171,7 @@ export const getCurrentUser = async () => {
 };
 
 export const getProfile = async (userId: string) => {
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode()) {
     // Return mock profile data in development mode
     const storedUser = localStorage.getItem('dev-auth-user');
     if (storedUser) {
