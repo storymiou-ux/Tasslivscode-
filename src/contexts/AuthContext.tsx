@@ -33,50 +33,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const loadUserData = async (userId: string) => {
+    console.log('Loading user data for:', userId);
     const [userProfile, role] = await Promise.all([
       getUserProfile(userId),
       getUserRole(userId)
     ]);
 
+    console.log('Loaded profile:', userProfile);
     setProfile(userProfile);
     setIsAdmin(role === 'admin');
   };
 
   useEffect(() => {
-    // Check for development mode user first
-    const devUser = localStorage.getItem('dev-auth-user');
-    if (devUser) {
-      const parsedUser = JSON.parse(devUser);
-      setUser(parsedUser);
-      setLoading(false);
-      loadUserData(parsedUser.id);
-      return;
-    }
-
-    // Then check Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (session?.user) {
-        startSessionMonitoring();
-        loadUserData(session.user.id);
+    // Toujours vérifier d'abord Supabase pour s'assurer qu'on a la session courante
+    const initAuth = async () => {
+      console.log('InitAuth: Checking Supabase session...');
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Utilisateur connecté via Supabase - clear dev mode et utiliser Supabase
+          console.log('Supabase session found for:', session.user.email);
+          localStorage.removeItem('dev-auth-user');
+          setUser(session.user);
+          startSessionMonitoring();
+          await loadUserData(session.user.id);
+        } else {
+          // Pas de session Supabase - vérifier dev mode
+          const devUser = localStorage.getItem('dev-auth-user');
+          if (devUser) {
+            console.log('Dev mode user found');
+            const parsedUser = JSON.parse(devUser);
+            setUser(parsedUser);
+            await loadUserData(parsedUser.id);
+          } else {
+            console.log('No user logged in');
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setUser(null);
       }
-    });
+      
+      setLoading(false);
+    };
 
+    initAuth();
+
+    // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      console.log('Auth state changed:', event, 'User:', session?.user?.email);
+      
+      if (event === 'SIGNED_IN') {
+        // Nouvelle connexion - clear dev mode
+        localStorage.removeItem('dev-auth-user');
         setUser(session?.user ?? null);
-        setLoading(false);
-
+        if (session?.user) {
+          startSessionMonitoring();
+          loadUserData(session.user.id);
+        }
+      } else if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        setUser(session?.user ?? null);
         if (session?.user) {
           startSessionMonitoring();
           loadUserData(session.user.id);
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
         setUser(null);
         setIsAdmin(false);
         setProfile(null);
+        localStorage.removeItem('dev-auth-user');
         stopSessionMonitoring();
       } else if (event === 'USER_UPDATED') {
         setUser(session?.user ?? null);
