@@ -25,7 +25,26 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '+221',
+    password: '',
+    confirmPassword: '',
+    businessName: '',
+    businessType: '',
+    agreeToTerms: false
+  });
+
+  // Debug: Log environment variables in development and production
+  useEffect(() => {
+    console.log('Environment Variables Debug:');
+    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'EXISTS' : 'MISSING');
+    console.log('MODE:', import.meta.env.MODE);
+  }, []);
 
   // Vérifier si Supabase est configuré
   const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL &&
