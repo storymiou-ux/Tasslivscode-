@@ -25,9 +25,12 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Fonction de validation d'email robuste
+  // Vérifier si Supabase est configuré
+  const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL &&
+                               import.meta.env.VITE_SUPABASE_ANON_KEY &&
+                               import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
   const validateEmail = (email: string): { isValid: boolean; error?: string } => {
     if (!email) {
       return { isValid: false, error: 'L\'email est requis' };
@@ -105,6 +108,13 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
+      // Vérifier la configuration Supabase
+      if (!isSupabaseConfigured) {
+        setError('L\'authentification n\'est pas configurée. Veuillez contacter l\'administrateur.');
+        setLoading(false);
+        return;
+      }
+
       // Validation d'email
       const emailValidation = validateEmail(formData.email);
       if (!emailValidation.isValid) {
@@ -212,6 +222,16 @@ const AuthPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             {isLogin ? 'Sign in to your account' : 'Create your account'}
           </h2>
+
+          {!isSupabaseConfigured && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-medium">Configuration incomplète</p>
+                <p>L'authentification n'est pas configurée. Contactez l'administrateur pour configurer Supabase.</p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3">
