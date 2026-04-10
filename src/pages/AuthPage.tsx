@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { signUp, signIn } from '../lib/auth';
+import { refreshSupabaseClient, getSupabaseConfig } from '../lib/supabase';
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -27,6 +28,7 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,22 +40,41 @@ const AuthPage = () => {
     agreeToTerms: false
   });
 
+  // Charger la configuration depuis l'API au montage du composant
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        console.log('Loading Supabase config from API...');
+        const response = await fetch('/api/config');
+        if (response.ok) {
+          const config = await response.json();
+          console.log('Config loaded from API:', config);
+          // Rafraîchir le client Supabase avec la nouvelle configuration
+          refreshSupabaseClient();
+        }
+      } catch (error) {
+        console.error('Error loading config from API:', error);
+      }
+      setConfigLoaded(true);
+    };
+
+    loadConfig();
+  }, []);
+
   // Debug: Log environment variables in development and production
   useEffect(() => {
     const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+    const config = getSupabaseConfig();
     console.log('Environment Variables Debug:');
-    console.log('SUPABASE_URL:', url);
-    console.log('SUPABASE_ANON_KEY:', key ? 'EXISTS' : 'MISSING');
+    console.log('Build-time SUPABASE_URL:', url);
+    console.log('Build-time SUPABASE_ANON_KEY:', key ? 'EXISTS' : 'MISSING');
+    console.log('Runtime config:', config);
     console.log('MODE:', import.meta.env.MODE);
-  }, []);
+  }, [configLoaded]);
 
-  // Vérifier si Supabase est configuré (support avec et sans préfixe VITE_)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
-  const isSupabaseConfigured = supabaseUrl && 
-                               supabaseKey && 
-                               supabaseUrl !== 'https://placeholder.supabase.co';
+  // Vérifier si Supabase est configuré - utiliser la configuration runtime
+  const { isConfigured: isSupabaseConfigured } = getSupabaseConfig();
   const validateEmail = (email: string): { isValid: boolean; error?: string } => {
     if (!email) {
       return { isValid: false, error: 'L\'email est requis' };

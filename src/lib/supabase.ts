@@ -1,29 +1,51 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Support pour les deux formats de variables (avec et sans préfixe VITE_)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
 
 // Log pour debug en développement
 if (import.meta.env.DEV) {
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Key exists:', !!supabaseAnonKey);
+  console.log('Supabase URL (from env):', supabaseUrl);
+  console.log('Supabase Key (from env):', supabaseAnonKey ? 'EXISTS' : 'MISSING');
   console.log('Environment Mode:', import.meta.env.MODE);
 }
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables:', {
-    url: !!supabaseUrl,
-    key: !!supabaseAnonKey
-  });
-  // En production, on utilise des valeurs par défaut pour éviter le crash
-  // mais l'authentification ne fonctionnera pas
+// Fonction pour charger la configuration depuis l'API en production
+async function loadConfigFromApi() {
+  if (supabaseUrl && supabaseAnonKey) {
+    return; // Déjà configuré depuis les variables d'environnement
+  }
+
+  try {
+    console.log('Loading Supabase config from API...');
+    const response = await fetch('/api/config');
+    if (response.ok) {
+      const config = await response.json();
+      supabaseUrl = config.SUPABASE_URL || supabaseUrl;
+      supabaseAnonKey = config.SUPABASE_ANON_KEY || supabaseAnonKey;
+      console.log('Config loaded from API. URL:', supabaseUrl ? 'SET' : 'MISSING');
+    }
+  } catch (error) {
+    console.error('Error loading config from API:', error);
+  }
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-  {
+// Charger la config au démarrage
+loadConfigFromApi();
+
+function createSupabaseClient() {
+  const url = supabaseUrl || 'https://placeholder.supabase.co';
+  const key = supabaseAnonKey || 'placeholder-key';
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not properly configured:', {
+      url: !!supabaseUrl,
+      key: !!supabaseAnonKey
+    });
+  }
+
+  return createClient(url, key, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -32,5 +54,21 @@ export const supabase = createClient(
       storageKey: 'tassli-auth-token',
       flowType: 'pkce'
     }
-  }
-);
+  });
+}
+
+export let supabase = createSupabaseClient();
+
+// Réexporter la fonction pour rafraîchir le client si nécessaire
+export function refreshSupabaseClient() {
+  supabase = createSupabaseClient();
+}
+
+// Exporter les variables de configuration
+export function getSupabaseConfig() {
+  return {
+    url: supabaseUrl,
+    key: supabaseAnonKey,
+    isConfigured: !!supabaseUrl && !!supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co'
+  };
+}
